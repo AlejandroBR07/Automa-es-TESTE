@@ -1,0 +1,5 @@
+{
+  "name": "Buscador de Automações Unnichat",
+  "description": "Uma aplicação para buscar e analisar automações do Unnichat a partir de uma planilha Google, utilizando a IA do Gemini para insights.",
+  "requestFramePermissions": []
+}
