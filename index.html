@@ -31,7 +31,8 @@
   <body>
     <div id="root"></div>
     <!-- O tipo do script foi alterado para 'text/babel' para que o Babel possa transpilar o código. -->
+    <!-- 'data-presets' instrui o Babel a usar as transformações para React (JSX) e TypeScript. -->
     <!-- 'data-type="module"' é necessário para que os imports/exports funcionem corretamente. -->
-    <script type="text/babel" data-type="module" src="./index.tsx"></script>
+    <script type="text/babel" data-presets="react,typescript" data-type="module" src="./index.tsx"></script>
   </body>
 </html>

@@ -481,7 +481,7 @@ const App: React.FC = () => {
           <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-teal-400 drop-shadow-[0_2px_4px_rgba(0,255,255,0.2)]">
             Painel de Automações Unnichat
           </h1>
-          <p className="text-gray-400 mt-2 text-lg">v4.0 - Conectado. Busque, ordene e analise com IA.</p>
+          <p className="text-gray-400 mt-2 text-lg">v4.1 - Conectado. Busque, ordene e analise com IA.</p>
         </header>
 
         {error && (
