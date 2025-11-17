@@ -1,7 +1,5 @@
-
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom/client';
-import { GoogleGenAI } from "@google/genai";
 
 // ==========================================================================================
 // TIPOS (do antigo types.ts)
@@ -36,12 +34,6 @@ const XCircleIcon = () => (
   </svg>
 );
 
-const SparklesIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-        <path fillRule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.29a1 1 0 01-1.933-.518L11.033 2.226A1 1 0 0112 2zm3.707 4.293a1 1 0 010 1.414l-2.121 2.121a1 1 0 01-1.414-1.414l2.121-2.121a1 1 0 011.414 0zM12 10a1 1 0 011 1v4.033l1.18.59a1 1 0 01-1.04 1.848l-3.75-1.875a1 1 0 010-1.732L12.5 13.5v-2.5a1 1 0 01-1-1 1 1 0 01-1 1v2.5l-1.5-.75a1 1 0 011.04-1.848l3.75 1.875a1 1 0 010 1.732L9.5 17.5l-1.18-.59V11a1 1 0 011-1h2a1 1 0 011-1z" clipRule="evenodd" />
-    </svg>
-);
-
 const SortAscIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
@@ -52,12 +44,6 @@ const SortDescIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" />
   </svg>
-);
-
-const CloseIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-    </svg>
 );
 
 const GoogleIcon = () => (
@@ -88,136 +74,10 @@ const ExclamationIcon = () => (
 
 
 // ==========================================================================================
-// SERVIÇO GEMINI (do antigo services/geminiService.ts)
-// ==========================================================================================
-const API_KEY = "AIzaSyByTvMWBOCa1TKUuVAM5z6NyoIT7JjrVWM";
-const ai = new GoogleGenAI({ apiKey: API_KEY });
-
-async function analyzeAutomationWithGemini(automation: Automation): Promise<string> {
-  const prompt = `
-    Você é um especialista sênior em automação da plataforma Unnichat.
-    Analise os detalhes da automação a seguir e forneça uma resposta estruturada em markdown.
-
-    **Nome da Automação:** "${automation.nome}"
-    **Conexão:** ${automation.conexao}
-    **Função Descrita:** "${automation.funcao}"
-
-    Sua resposta DEVE seguir este formato:
-    **Análise:** Um resumo claro e conciso da função principal da automação.
-    **Sugestão de Melhoria:** Uma sugestão prática e acionável para otimizar ou melhorar a automação. Se nenhuma melhoria for óbvia, sugira um ponto de verificação ou uma boa prática relacionada.
-  `;
-
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-    });
-    return response.text;
-  } catch (error) {
-    console.error("Erro ao chamar a API do Gemini:", error);
-    return "**Erro na Análise**\n\nDesculpe, não foi possível obter uma análise da IA neste momento. Verifique o console do navegador para mais detalhes técnicos.";
-  }
-}
-
-// ==========================================================================================
-// COMPONENTE MODAL DE ANÁLISE (do antigo components/AnalysisModal.tsx)
-// ==========================================================================================
-interface AnalysisModalProps {
-  automation: Automation | null;
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-const AnalysisModal: React.FC<AnalysisModalProps> = ({ automation, isOpen, onClose }) => {
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isOpen && automation) {
-      setIsAnalyzing(true);
-      setAnalysisResult(null);
-      analyzeAutomationWithGemini(automation)
-        .then(result => {
-          setAnalysisResult(result);
-        })
-        .finally(() => {
-          setIsAnalyzing(false);
-        });
-    }
-  }, [isOpen, automation]);
-
-  if (!isOpen || !automation) return null;
-
-  const renderMarkdown = (text: string) => {
-    const html = text
-      .replace(/\*\*(.*?)\*\*/g, '<strong class="text-teal-300">$1</strong>')
-      .replace(/\n/g, '<br />');
-    return { __html: html };
-  };
-
-  return (
-    <div 
-      className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-opacity duration-300"
-      onClick={onClose}
-    >
-      <div 
-        className="bg-slate-800/80 border border-teal-500/30 rounded-xl shadow-2xl shadow-black/50 w-full max-w-2xl max-h-[80vh] flex flex-col transform transition-all duration-300 scale-95 opacity-0 animate-fade-in-scale"
-        onClick={e => e.stopPropagation()}
-        style={{ animationFillMode: 'forwards' }}
-      >
-        <header className="flex items-center justify-between p-4 border-b border-slate-700">
-          <div className="flex items-center gap-3">
-            <SparklesIcon />
-            <h2 className="text-lg font-bold text-white">Análise da IA</h2>
-          </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
-            <CloseIcon />
-          </button>
-        </header>
-
-        <div className="p-6 overflow-y-auto">
-          <div className="mb-4">
-            <p className="text-sm text-teal-400">{automation.conexao}</p>
-            <h3 className="text-xl font-bold text-white">{automation.nome}</h3>
-          </div>
-          
-          <div className="mt-4 text-gray-300 text-sm space-y-4">
-            {isAnalyzing && (
-              <div className="flex items-center justify-center p-8">
-                <svg className="animate-spin h-8 w-8 text-teal-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <p className="ml-4 text-lg">Analisando com Gemini...</p>
-              </div>
-            )}
-            {analysisResult && (
-              <div className="p-4 bg-slate-900/50 rounded-md border border-slate-700">
-                <div dangerouslySetInnerHTML={renderMarkdown(analysisResult)} />
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-       <style>{`
-        @keyframes fade-in-scale {
-          from { opacity: 0; transform: scale(0.95); }
-          to { opacity: 1; transform: scale(1); }
-        }
-        .animate-fade-in-scale {
-          animation: fade-in-scale 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-      `}</style>
-    </div>
-  );
-};
-
-// ==========================================================================================
 // COMPONENTE TABELA DE AUTOMAÇÕES (do antigo components/AutomationTable.tsx)
 // ==========================================================================================
 interface AutomationTableProps {
   automations: Automation[];
-  onAnalyze: (automation: Automation) => void;
 }
 
 type SortKey = 'conexao' | 'nome' | 'desativado';
@@ -227,7 +87,7 @@ type SortConfig = {
   direction: 'ascending' | 'descending';
 };
 
-const AutomationTable: React.FC<AutomationTableProps> = ({ automations, onAnalyze }) => {
+const AutomationTable: React.FC<AutomationTableProps> = ({ automations }) => {
   const [sortConfig, setSortConfig] = useState<SortConfig | null>({ key: 'nome', direction: 'ascending' });
 
   const sortedAutomations = useMemo(() => {
@@ -261,10 +121,10 @@ const AutomationTable: React.FC<AutomationTableProps> = ({ automations, onAnalyz
     return sortConfig.direction === 'ascending' ? <SortAscIcon /> : <SortDescIcon />;
   };
 
-  const Th = ({ sortKey, label }: { sortKey: SortKey, label: string }) => (
+  const Th = ({ sortKey, label, widthClass }: { sortKey: SortKey, label: string, widthClass?: string }) => (
     <th
       scope="col"
-      className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer select-none"
+      className={`px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer select-none ${widthClass}`}
       onClick={() => requestSort(sortKey)}
     >
       <div className="flex items-center gap-2">
@@ -276,35 +136,24 @@ const AutomationTable: React.FC<AutomationTableProps> = ({ automations, onAnalyz
 
   return (
     <div className="overflow-x-auto bg-slate-800/50 backdrop-blur-sm border border-teal-500/20 rounded-lg shadow-xl">
-      <table className="min-w-full divide-y divide-slate-700">
+      <table className="min-w-full divide-y divide-slate-700 table-fixed">
         <thead className="bg-slate-900/70">
           <tr>
-            <Th sortKey="nome" label="Nome da Automação" />
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Função</th>
-            <Th sortKey="desativado" label="Status" />
-            <th scope="col" className="relative px-6 py-3">
-              <span className="sr-only">Analisar</span>
-            </th>
+            <Th sortKey="nome" label="Nome da Automação" widthClass="w-1/3" />
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-1/2">Função</th>
+            <Th sortKey="desativado" label="Status" widthClass="w-1/6" />
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-800">
           {sortedAutomations.map((automation, index) => (
             <tr key={`${automation.nome}-${index}`} className="hover:bg-slate-700/50 transition-colors duration-200">
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{automation.nome}</td>
-              <td className="px-6 py-4 text-sm text-gray-400 max-w-sm truncate" title={automation.funcao}>{automation.funcao}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm">
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white truncate w-1/3">{automation.nome}</td>
+              <td className="px-6 py-4 text-sm text-gray-300 whitespace-normal w-1/2">{automation.funcao}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm w-1/6">
                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${automation.desativado ? 'bg-red-900 text-red-300' : 'bg-green-900 text-green-300'}`}>
                     {automation.desativado ? <XCircleIcon /> : <CheckCircleIcon />}
                     {automation.desativado ? 'Desativado' : 'Ativo'}
                 </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <button 
-                    onClick={() => onAnalyze(automation)}
-                    className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-teal-600/50 text-teal-200 rounded-md hover:bg-teal-600/80 hover:text-white transition-all duration-200"
-                >
-                    <SparklesIcon /> Analisar
-                </button>
               </td>
             </tr>
           ))}
@@ -329,9 +178,6 @@ const App: React.FC = () => {
 
   const [gapiReady, setGapiReady] = useState(false);
   const [gisReady, setGisReady] = useState(false);
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedAutomation, setSelectedAutomation] = useState<Automation | null>(null);
 
   const [duplicates, setDuplicates] = useState<Record<string, Automation[]>>({});
   const [openConnections, setOpenConnections] = useState<Record<string, boolean>>({});
@@ -366,11 +212,6 @@ const App: React.FC = () => {
     return duplicatesOnly;
   };
 
-  const handleAnalyze = (automation: Automation) => {
-    setSelectedAutomation(automation);
-    setIsModalOpen(true);
-  };
-
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -382,7 +223,6 @@ const App: React.FC = () => {
       
       const rows = response.result.values || [];
       const parsedAutomations: Automation[] = rows
-        // FIX: Add Array.isArray check to prevent errors with malformed rows from the spreadsheet.
         .map((row: any) => {
           if (Array.isArray(row) && row.length >= 3 && row[2]?.trim()) {
             return {
@@ -535,8 +375,7 @@ const App: React.FC = () => {
           <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-teal-400 drop-shadow-[0_2px_4px_rgba(0,255,255,0.2)]">
             Painel de Automações Unnichat
           </h1>
-          {/* FIX: Updated version number to reflect recent changes. */}
-          <p className="text-gray-400 mt-2 text-lg">v5.1 - Correção no processamento de dados da planilha.</p>
+          <p className="text-gray-400 mt-2 text-lg">v5.2 - Removida análise com IA e coluna 'Função' expandida.</p>
         </header>
 
         {error && (
@@ -575,12 +414,13 @@ const App: React.FC = () => {
                     </button>
                     {showDuplicates && (
                         <div className="p-4 space-y-4 border-t border-amber-500/50">
-                            {Object.values(duplicates).map(duplicateGroup => (
+                            {/* FIX: Explicitly type `duplicateGroup` to avoid TypeScript inference issues. */}
+                            {Object.values(duplicates).map((duplicateGroup: Automation[]) => (
                                 <div key={duplicateGroup[0].nome}>
                                     <h3 className="text-md font-semibold text-white mb-2">
                                         "{duplicateGroup[0].nome}" na conexão "{duplicateGroup[0].conexao}" ({duplicateGroup.length}x)
                                     </h3>
-                                    <AutomationTable automations={duplicateGroup} onAnalyze={handleAnalyze} />
+                                    <AutomationTable automations={duplicateGroup} />
                                 </div>
                             ))}
                         </div>
@@ -634,7 +474,7 @@ const App: React.FC = () => {
                               </button>
                               {isOpen && (
                                   <div className="p-4 border-t border-teal-500/20">
-                                      <AutomationTable automations={automationsInGroup} onAnalyze={handleAnalyze} />
+                                      <AutomationTable automations={automationsInGroup} />
                                   </div>
                               )}
                           </div>
@@ -652,7 +492,6 @@ const App: React.FC = () => {
           </div>
         ) : null}
       </div>
-      <AnalysisModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} automation={selectedAutomation} />
     </div>
   );
 };
