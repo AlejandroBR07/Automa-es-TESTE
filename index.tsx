@@ -37,7 +37,7 @@ const XCircleIcon = () => (
 
 const SparklesIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-        <path fillRule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2_9a1 1 0 01-1.933-.518L11.033 2.226A1 1 0 0112 2zm3.707 4.293a1 1 0 010 1.414l-2.121 2.121a1 1 0 01-1.414-1.414l2.121-2.121a1 1 0 011.414 0zM12 10a1 1 0 011 1v4.033l1.18.59a1 1 0 01-1.04 1.848l-3.75-1.875a1 1 0 010-1.732L12.5 13.5v-2.5a1 1 0 01-1-1 1 1 0 01-1 1v2.5l-1.5-.75a1 1 0 011.04-1.848l3.75 1.875a1 1 0 010 1.732L9.5 17.5l-1.18-.59V11a1 1 0 011-1h2a1 1 0 011-1z" clipRule="evenodd" />
+        <path fillRule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.29a1 1 0 01-1.933-.518L11.033 2.226A1 1 0 0112 2zm3.707 4.293a1 1 0 010 1.414l-2.121 2.121a1 1 0 01-1.414-1.414l2.121-2.121a1 1 0 011.414 0zM12 10a1 1 0 011 1v4.033l1.18.59a1 1 0 01-1.04 1.848l-3.75-1.875a1 1 0 010-1.732L12.5 13.5v-2.5a1 1 0 01-1-1 1 1 0 01-1 1v2.5l-1.5-.75a1 1 0 011.04-1.848l3.75 1.875a1 1 0 010 1.732L9.5 17.5l-1.18-.59V11a1 1 0 011-1h2a1 1 0 011-1z" clipRule="evenodd" />
     </svg>
 );
 
@@ -208,8 +208,15 @@ interface AutomationTableProps {
 
 type SortKey = 'conexao' | 'nome' | 'desativado';
 
+// CORREÇÃO: Definindo o tipo complexo fora do useState para evitar erro de parsing do Babel
+type SortConfig = {
+  key: SortKey;
+  direction: 'ascending' | 'descending';
+};
+
 const AutomationTable: React.FC<AutomationTableProps> = ({ automations, onAnalyze }) => {
-  const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'ascending' | 'descending' } | null>(null);
+  // CORREÇÃO: Usando o novo tipo 'SortConfig' para simplificar a linha
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
 
   const sortedAutomations = useMemo(() => {
     let sortableItems = [...automations];
@@ -543,4 +550,3 @@ root.render(
     <App />
   </React.StrictMode>
 );
-
