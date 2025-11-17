@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { Automation } from '../types';
+import { Automation } from '../types.ts';
 
 // A API Key foi fornecida para uso interno.
 const API_KEY = "AIzaSyByTvMWBOCa1TKUuVAM5z6NyoIT7JjrVWM";

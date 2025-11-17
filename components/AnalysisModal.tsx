@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Automation } from '../types';
-import { analyzeAutomationWithGemini } from '../services/geminiService';
-import { CloseIcon, SparklesIcon } from './Icons';
+import { Automation } from '../types.ts';
+import { analyzeAutomationWithGemini } from '../services/geminiService.ts';
+import { CloseIcon, SparklesIcon } from './Icons.tsx';
 
 interface AnalysisModalProps {
   automation: Automation | null;

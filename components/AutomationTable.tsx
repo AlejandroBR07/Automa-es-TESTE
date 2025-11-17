@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Automation } from '../types';
-import { CheckCircleIcon, XCircleIcon, SparklesIcon, SortAscIcon, SortDescIcon } from './Icons';
+import { Automation } from '../types.ts';
+import { CheckCircleIcon, XCircleIcon, SparklesIcon, SortAscIcon, SortDescIcon } from './Icons.tsx';
 
 interface AutomationTableProps {
   automations: Automation[];

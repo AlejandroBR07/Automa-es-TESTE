@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Automation } from '../types';
-import { analyzeAutomationWithGemini } from '../services/geminiService';
-import { CheckCircleIcon, XCircleIcon, SparklesIcon } from './Icons';
+import { Automation } from '../types.ts';
+import { analyzeAutomationWithGemini } from '../services/geminiService.ts';
+import { CheckCircleIcon, XCircleIcon, SparklesIcon } from './Icons.tsx';
 
 interface AutomationCardProps {
   automation: Automation;

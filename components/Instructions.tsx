@@ -1,5 +1,5 @@
 import React from 'react';
-import { InfoIcon } from './Icons';
+import { InfoIcon } from './Icons.tsx';
 
 const Instructions: React.FC = () => {
   return (

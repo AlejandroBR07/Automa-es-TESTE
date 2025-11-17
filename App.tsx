@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Automation } from './types';
-import { SearchIcon, GoogleIcon } from './components/Icons';
-import AutomationTable from './components/AutomationTable';
-import AnalysisModal from './components/AnalysisModal';
+import { Automation } from './types.ts';
+import { SearchIcon, GoogleIcon } from './components/Icons.tsx';
+import AutomationTable from './components/AutomationTable.tsx';
+import AnalysisModal from './components/AnalysisModal.tsx';
 
 // ==========================================================================================
 // AÇÃO NECESSÁRIA: Configure seu Client ID e a Planilha aqui
