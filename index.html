@@ -2,11 +2,15 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <!-- O link para o ícone 'vite.svg' foi removido pois o arquivo não existe no projeto. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Buscador de Automações Unnichat</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
+    <!-- Adicionado Babel Standalone: Ele traduz o código TSX/JSX para JavaScript que o navegador entende. -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
     <style>
       body {
         background-color: #02042b; /* Cor de fallback */
@@ -26,6 +30,8 @@
 </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="./index.tsx"></script>
+    <!-- O tipo do script foi alterado para 'text/babel' para que o Babel possa transpilar o código. -->
+    <!-- 'data-type="module"' é necessário para que os imports/exports funcionem corretamente. -->
+    <script type="text/babel" data-type="module" src="./index.tsx"></script>
   </body>
 </html>
