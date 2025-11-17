@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom/client';
 import { GoogleGenAI } from "@google/genai";
@@ -72,6 +73,19 @@ const GoogleIcon = () => (
       c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
   </svg>
 );
+
+const ChevronDownIcon = ({ isOpen }: { isOpen: boolean }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 transition-transform duration-300 ${isOpen ? 'transform rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+    </svg>
+);
+
+const ExclamationIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+    </svg>
+);
+
 
 // ==========================================================================================
 // SERVIÇO GEMINI (do antigo services/geminiService.ts)
@@ -208,15 +222,13 @@ interface AutomationTableProps {
 
 type SortKey = 'conexao' | 'nome' | 'desativado';
 
-// CORREÇÃO: Definindo o tipo complexo fora do useState para evitar erro de parsing do Babel
 type SortConfig = {
   key: SortKey;
   direction: 'ascending' | 'descending';
 };
 
 const AutomationTable: React.FC<AutomationTableProps> = ({ automations, onAnalyze }) => {
-  // CORREÇÃO: Usando o novo tipo 'SortConfig' para simplificar a linha
-  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>({ key: 'nome', direction: 'ascending' });
 
   const sortedAutomations = useMemo(() => {
     let sortableItems = [...automations];
@@ -267,7 +279,6 @@ const AutomationTable: React.FC<AutomationTableProps> = ({ automations, onAnalyz
       <table className="min-w-full divide-y divide-slate-700">
         <thead className="bg-slate-900/70">
           <tr>
-            <Th sortKey="conexao" label="Conexão" />
             <Th sortKey="nome" label="Nome da Automação" />
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Função</th>
             <Th sortKey="desativado" label="Status" />
@@ -279,8 +290,7 @@ const AutomationTable: React.FC<AutomationTableProps> = ({ automations, onAnalyz
         <tbody className="divide-y divide-slate-800">
           {sortedAutomations.map((automation, index) => (
             <tr key={`${automation.nome}-${index}`} className="hover:bg-slate-700/50 transition-colors duration-200">
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-teal-300">{automation.conexao}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-white">{automation.nome}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{automation.nome}</td>
               <td className="px-6 py-4 text-sm text-gray-400 max-w-sm truncate" title={automation.funcao}>{automation.funcao}</td>
               <td className="px-6 py-4 whitespace-nowrap text-sm">
                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${automation.desativado ? 'bg-red-900 text-red-300' : 'bg-green-900 text-green-300'}`}>
@@ -322,8 +332,11 @@ const App: React.FC = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAutomation, setSelectedAutomation] = useState<Automation | null>(null);
+
+  const [duplicates, setDuplicates] = useState<Record<string, Automation[]>>({});
+  const [openConnections, setOpenConnections] = useState<Record<string, boolean>>({});
+  const [showDuplicates, setShowDuplicates] = useState(false);
   
-  // AÇÃO NECESSÁRIA: Configure seu Client ID e a Planilha aqui
   const CLIENT_ID = "845183132675-5rgsvbh42vbgk266osp901jnas840hfo.apps.googleusercontent.com";
   const SPREADSHEET_ID = "1C1GOZ_v91sb3E8bIGnNHF-f29a_nvk2HDdzfFtFcJpM";
   const SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly';
@@ -332,6 +345,25 @@ const App: React.FC = () => {
       if (!str) return false;
       const s = str.trim().toLowerCase();
       return s === 'sim' || s === 'true' || s === '✔' || s === 'ok' || s === 'verdadeiro';
+  };
+  
+  const findDuplicates = (automations: Automation[]): Record<string, Automation[]> => {
+    const nameMap: Record<string, Automation[]> = {};
+    automations.forEach(auto => {
+      const key = `${auto.conexao.toLowerCase().trim()}|||${auto.nome.toLowerCase().trim()}`;
+      if (!nameMap[key]) {
+        nameMap[key] = [];
+      }
+      nameMap[key].push(auto);
+    });
+
+    const duplicatesOnly: Record<string, Automation[]> = {};
+    for (const key in nameMap) {
+      if (nameMap[key].length > 1) {
+        duplicatesOnly[key] = nameMap[key];
+      }
+    }
+    return duplicatesOnly;
   };
 
   const handleAnalyze = (automation: Automation) => {
@@ -345,13 +377,14 @@ const App: React.FC = () => {
     try {
       const response = await (window as any).gapi.client.sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
-        range: 'A2:F', // Começa da linha 2 para ignorar o cabeçalho
+        range: 'A2:F',
       });
       
       const rows = response.result.values || [];
       const parsedAutomations: Automation[] = rows
-        .map((row: any[]) => {
-          if (row.length >= 3 && row[2]?.trim()) {
+        // FIX: Add Array.isArray check to prevent errors with malformed rows from the spreadsheet.
+        .map((row: any) => {
+          if (Array.isArray(row) && row.length >= 3 && row[2]?.trim()) {
             return {
               conexao: row[0]?.trim() || 'N/A',
               pasta: row[1]?.trim() || '',
@@ -366,9 +399,10 @@ const App: React.FC = () => {
         .filter((item): item is Automation => item !== null);
 
       if (parsedAutomations.length === 0) {
-        setError("Nenhuma automação válida foi encontrada na planilha. Verifique se ela não está vazia ou se o formato está correto.");
+        setError("Nenhuma automação válida foi encontrada na planilha.");
       } else {
         setAutomations(parsedAutomations);
+        setDuplicates(findDuplicates(parsedAutomations));
       }
     } catch (err: any) {
       console.error("Erro ao buscar dados da planilha:", err);
@@ -394,6 +428,7 @@ const App: React.FC = () => {
             scope: SCOPES,
             callback: (tokenResponse: any) => {
                 if (tokenResponse && tokenResponse.access_token) {
+                    (window as any).gapi.client.setToken(tokenResponse);
                     setIsSignedIn(true);
                 } else {
                     setError("Falha na autenticação. O token de acesso não foi recebido.");
@@ -432,7 +467,7 @@ const App: React.FC = () => {
 
   const handleAuthClick = () => {
     if (CLIENT_ID.startsWith("COLE_SEU_CLIENT_ID_AQUI")) {
-        alert("Erro de configuração: O CLIENT_ID ainda não foi configurado no arquivo App.tsx. Siga as instruções no código para gerar e adicionar sua chave.");
+        alert("Erro de configuração: O CLIENT_ID ainda não foi configurado.");
         return;
     }
     if (tokenClient) {
@@ -441,18 +476,37 @@ const App: React.FC = () => {
   };
 
   const filteredAutomations = useMemo(() => {
-    if (!searchTerm) {
-      return automations;
-    }
+    if (!searchTerm) return automations;
     const lowercasedFilter = searchTerm.toLowerCase();
     return automations.filter(
-      (automation) =>
-        automation.nome.toLowerCase().includes(lowercasedFilter) ||
-        automation.funcao.toLowerCase().includes(lowercasedFilter) ||
-        automation.conexao.toLowerCase().includes(lowercasedFilter) ||
-        automation.pasta.toLowerCase().includes(lowercasedFilter)
+      (auto) =>
+        auto.nome.toLowerCase().includes(lowercasedFilter) ||
+        auto.funcao.toLowerCase().includes(lowercasedFilter) ||
+        auto.conexao.toLowerCase().includes(lowercasedFilter) ||
+        auto.pasta.toLowerCase().includes(lowercasedFilter)
     );
   }, [automations, searchTerm]);
+  
+  const groupedAutomations = useMemo(() => {
+    return filteredAutomations.reduce((acc, automation) => {
+        const key = automation.conexao;
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(automation);
+        return acc;
+    }, {} as Record<string, Automation[]>);
+  }, [filteredAutomations]);
+  
+  const handleToggleConnection = (connectionName: string) => {
+    setOpenConnections(prev => ({ ...prev, [connectionName]: !prev[connectionName] }));
+  };
+
+  const handleToggleAll = (expand: boolean) => {
+    const allConnectionStates: Record<string, boolean> = {};
+    Object.keys(groupedAutomations).forEach(name => {
+        allConnectionStates[name] = expand;
+    });
+    setOpenConnections(allConnectionStates);
+  };
 
   if (!isSignedIn) {
     return (
@@ -481,7 +535,8 @@ const App: React.FC = () => {
           <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-teal-400 drop-shadow-[0_2px_4px_rgba(0,255,255,0.2)]">
             Painel de Automações Unnichat
           </h1>
-          <p className="text-gray-400 mt-2 text-lg">v4.1 - Conectado. Busque, ordene e analise com IA.</p>
+          {/* FIX: Updated version number to reflect recent changes. */}
+          <p className="text-gray-400 mt-2 text-lg">v5.1 - Correção no processamento de dados da planilha.</p>
         </header>
 
         {error && (
@@ -500,34 +555,100 @@ const App: React.FC = () => {
                 <p className="mt-4 text-lg text-gray-300">{!gapiReady ? 'Inicializando APIs do Google...' : 'Carregando dados da planilha...'}</p>
             </div>
         ) : automations.length > 0 && !error ? (
-          <div className="mt-8">
-            <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-4 sticky top-4 z-10 bg-slate-900/60 backdrop-blur-lg p-4 rounded-xl shadow-lg border border-slate-700/50">
-                <div className="relative w-full md:w-2/3">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
-                        <SearchIcon />
-                    </div>
-                    <input
-                        type="text"
-                        placeholder="Buscar por nome, função, conexão..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg py-3 pl-12 pr-4 focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors"
-                        aria-label="Campo de busca de automações"
-                    />
-                </div>
-                <p className="text-gray-400 text-sm w-full md:w-auto text-center md:text-right">
-                    Exibindo <strong className="text-white">{filteredAutomations.length}</strong> de <strong className="text-white">{automations.length}</strong> automações.
-                </p>
-            </div>
-            
-            <AutomationTable automations={filteredAutomations} onAnalyze={handleAnalyze} />
-
-            {filteredAutomations.length === 0 && searchTerm && (
-                <div className="text-center py-16">
-                    <p className="text-2xl text-gray-300 mb-2">🤔</p>
-                    <p className="text-gray-400">Nenhuma automação encontrada com o termo <strong className="text-teal-400">"{searchTerm}"</strong>.</p>
+          <div className="mt-8 space-y-8">
+            {Object.keys(duplicates).length > 0 && (
+                <div className="bg-amber-900/30 border border-amber-500/50 rounded-lg">
+                    <button
+                        className="w-full flex justify-between items-center p-4 text-left"
+                        onClick={() => setShowDuplicates(prev => !prev)}
+                    >
+                        <div className="flex items-center gap-3">
+                            <ExclamationIcon />
+                            <h2 className="text-lg font-bold text-amber-300">Análise de Duplicados</h2>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <span className="px-3 py-1 text-xs font-semibold text-amber-900 bg-amber-400 rounded-full">
+                                {Object.keys(duplicates).length} grupo(s) encontrado(s)
+                            </span>
+                            <ChevronDownIcon isOpen={showDuplicates} />
+                        </div>
+                    </button>
+                    {showDuplicates && (
+                        <div className="p-4 space-y-4 border-t border-amber-500/50">
+                            {Object.values(duplicates).map(duplicateGroup => (
+                                <div key={duplicateGroup[0].nome}>
+                                    <h3 className="text-md font-semibold text-white mb-2">
+                                        "{duplicateGroup[0].nome}" na conexão "{duplicateGroup[0].conexao}" ({duplicateGroup.length}x)
+                                    </h3>
+                                    <AutomationTable automations={duplicateGroup} onAnalyze={handleAnalyze} />
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
+
+            <div>
+              <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-4 sticky top-4 z-10 bg-slate-900/60 backdrop-blur-lg p-4 rounded-xl shadow-lg border border-slate-700/50">
+                  <div className="relative w-full md:flex-1">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+                          <SearchIcon />
+                      </div>
+                      <input
+                          type="text"
+                          placeholder="Buscar em todas as conexões..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="w-full bg-slate-800 border border-slate-700 rounded-lg py-3 pl-12 pr-4 focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors"
+                          aria-label="Campo de busca de automações"
+                      />
+                  </div>
+                  <div className="flex items-center gap-2">
+                      <button onClick={() => handleToggleAll(true)} className="px-3 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 rounded-md transition">Expandir Tudo</button>
+                      <button onClick={() => handleToggleAll(false)} className="px-3 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 rounded-md transition">Recolher Tudo</button>
+                  </div>
+                  <p className="text-gray-400 text-sm w-full md:w-auto text-center md:text-right">
+                      Exibindo <strong className="text-white">{filteredAutomations.length}</strong> de <strong className="text-white">{automations.length}</strong>
+                  </p>
+              </div>
+              
+              <div className="space-y-4">
+                  {Object.keys(groupedAutomations).sort().map(connectionName => {
+                      const automationsInGroup = groupedAutomations[connectionName];
+                      const isOpen = openConnections[connectionName] || false;
+
+                      return (
+                          <div key={connectionName} className="bg-slate-800/50 backdrop-blur-sm border border-teal-500/20 rounded-lg overflow-hidden">
+                              <button
+                                  className="w-full flex justify-between items-center p-4 text-left hover:bg-slate-700/50 transition-colors"
+                                  onClick={() => handleToggleConnection(connectionName)}
+                                  aria-expanded={isOpen}
+                              >
+                                  <h2 className="text-lg font-bold text-teal-300">{connectionName}</h2>
+                                  <div className="flex items-center gap-4">
+                                      <span className="px-3 py-1 text-xs font-semibold text-slate-800 bg-slate-300 rounded-full">
+                                          {automationsInGroup.length} automação(ões)
+                                      </span>
+                                      <ChevronDownIcon isOpen={isOpen} />
+                                  </div>
+                              </button>
+                              {isOpen && (
+                                  <div className="p-4 border-t border-teal-500/20">
+                                      <AutomationTable automations={automationsInGroup} onAnalyze={handleAnalyze} />
+                                  </div>
+                              )}
+                          </div>
+                      );
+                  })}
+              </div>
+
+              {filteredAutomations.length === 0 && searchTerm && (
+                  <div className="text-center py-16">
+                      <p className="text-2xl text-gray-300 mb-2">🤔</p>
+                      <p className="text-gray-400">Nenhuma automação encontrada com o termo <strong className="text-teal-400">"{searchTerm}"</strong>.</p>
+                  </div>
+              )}
+            </div>
           </div>
         ) : null}
       </div>
