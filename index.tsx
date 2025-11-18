@@ -72,6 +72,11 @@ const ExclamationIcon = () => (
     </svg>
 );
 
+const LogoutIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+    </svg>
+);
 
 // ==========================================================================================
 // COMPONENTE TABELA DE AUTOMAÇÕES (do antigo components/AutomationTable.tsx)
@@ -173,6 +178,7 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   
   const [isSignedIn, setIsSignedIn] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   // @ts-ignore
   const [tokenClient, setTokenClient] = useState<google.accounts.oauth2.TokenClient | null>(null);
 
@@ -185,7 +191,7 @@ const App: React.FC = () => {
   
   const CLIENT_ID = "845183132675-5rgsvbh42vbgk266osp901jnas840hfo.apps.googleusercontent.com";
   const SPREADSHEET_ID = "1C1GOZ_v91sb3E8bIGnNHF-f29a_nvk2HDdzfFtFcJpM";
-  const SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly';
+  const SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/userinfo.email';
 
   const toBoolean = (str: string): boolean => {
       if (!str) return false;
@@ -250,20 +256,47 @@ const App: React.FC = () => {
       const errorMessage = err.result?.error?.message || err.message;
 
       if (errorCode === 401) {
-        // Token inválido ou expirado. Deslogar.
-        localStorage.removeItem('googleAuthToken');
-        setIsSignedIn(false);
+        handleSignOutClick(false); // Não revogar token, pois pode ser apenas expirado
         setError("Sua sessão expirou ou foi invalidada. Por favor, conecte-se novamente.");
       } else if (errorCode === 403) {
-        // Permissão negada para acessar a planilha.
-        setError(`Acesso negado à planilha. A conta conectada pode não ter permissão para visualizar o documento. Verifique as permissões de compartilhamento da planilha.`);
+        setError(`Acesso negado à planilha. A conta conectada (${userEmail || 'desconhecida'}) pode não ter permissão para visualizar o documento. Verifique as permissões de compartilhamento da planilha.`);
       } else {
-        // Outros erros
         setError(`Falha ao carregar dados: ${errorMessage}. Verifique sua conexão e se o ID da planilha está correto.`);
       }
     } finally {
       setLoading(false);
     }
+  }, [userEmail]);
+
+  const fetchUserInfo = useCallback(async () => {
+    try {
+      const response = await (window as any).gapi.client.request({
+        'path': 'https://www.googleapis.com/oauth2/v3/userinfo'
+      });
+      setUserEmail(response.result.email);
+    } catch (error) {
+      console.error("Erro ao buscar informações do usuário:", error);
+      // Não bloquear a app se falhar, apenas logar. O e-mail não será exibido.
+    }
+  }, []);
+  
+  const handleSignOutClick = useCallback((revokeToken = true) => {
+    if (revokeToken) {
+        const storedTokenString = localStorage.getItem('googleAuthToken');
+        if (storedTokenString) {
+            const token = JSON.parse(storedTokenString);
+            if (token && token.access_token) {
+                (window as any).google.accounts.oauth2.revoke(token.access_token, () => {
+                    console.log('Token revogado com sucesso.');
+                });
+            }
+        }
+    }
+    localStorage.removeItem('googleAuthToken');
+    setIsSignedIn(false);
+    setUserEmail(null);
+    setAutomations([]);
+    setError(null);
   }, []);
 
   useEffect(() => {
@@ -316,7 +349,6 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Tenta usar o token salvo quando as APIs estiverem prontas
     if (gapiReady && gisReady && !isSignedIn) {
         const storedTokenString = localStorage.getItem('googleAuthToken');
         if (storedTokenString) {
@@ -334,14 +366,11 @@ const App: React.FC = () => {
   useEffect(() => {
     if (isSignedIn) {
       loadData();
+      fetchUserInfo();
     }
-  }, [isSignedIn, loadData]);
+  }, [isSignedIn, loadData, fetchUserInfo]);
 
   const handleAuthClick = () => {
-    if (CLIENT_ID.startsWith("COLE_SEU_CLIENT_ID_AQUI")) {
-        alert("Erro de configuração: O CLIENT_ID ainda não foi configurado.");
-        return;
-    }
     if (tokenClient) {
       tokenClient.requestAccessToken({ prompt: 'consent' });
     }
@@ -409,11 +438,29 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-transparent text-white font-sans">
       <div className="container mx-auto px-4 py-8">
         
-        <header className="text-center mb-10">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-teal-400 drop-shadow-[0_2px_4px_rgba(0,255,255,0.2)]">
-            Painel de Automações Unnichat
-          </h1>
-          <p className="text-gray-400 mt-2 text-lg">v5.4 - Melhoria no tratamento de erros de permissão.</p>
+        <header className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
+          <div className="text-center md:text-left">
+              <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-teal-400 drop-shadow-[0_2px_4px_rgba(0,255,255,0.2)]">
+                  Painel de Automações Unnichat
+              </h1>
+              <p className="text-gray-400 mt-2 text-lg">v5.5 - Adicionado logout e exibição de usuário.</p>
+          </div>
+          {userEmail && (
+              <div className="flex items-center gap-3 bg-slate-800/50 p-2 pr-3 rounded-lg border border-slate-700/50 shadow-md">
+                  <div className="text-right">
+                      <p className="text-sm text-white font-medium truncate max-w-[200px]">{userEmail}</p>
+                      <p className="text-xs text-gray-400">Conectado</p>
+                  </div>
+                  <button
+                      onClick={() => handleSignOutClick()}
+                      className="p-2 bg-red-900/70 hover:bg-red-800/90 rounded-full text-red-300 transition-colors"
+                      aria-label="Desconectar"
+                      title="Desconectar"
+                  >
+                      <LogoutIcon />
+                  </button>
+              </div>
+          )}
         </header>
 
         {error && (
@@ -452,9 +499,8 @@ const App: React.FC = () => {
                     </button>
                     {showDuplicates && (
                         <div className="p-4 space-y-4 border-t border-amber-500/50">
-                            {/* FIX: Explicitly type `duplicateGroup` to avoid TypeScript inference issues. */}
                             {Object.values(duplicates).map((duplicateGroup: Automation[]) => (
-                                <div key={duplicateGroup[0].nome}>
+                                <div key={`${duplicateGroup[0].conexao}-${duplicateGroup[0].nome}`}>
                                     <h3 className="text-md font-semibold text-white mb-2">
                                         "{duplicateGroup[0].nome}" na conexão "{duplicateGroup[0].conexao}" ({duplicateGroup.length}x)
                                     </h3>
