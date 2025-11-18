@@ -179,8 +179,7 @@ const App: React.FC = () => {
   
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  // @ts-ignore
-  const [tokenClient, setTokenClient] = useState<google.accounts.oauth2.TokenClient | null>(null);
+  const [tokenClient, setTokenClient] = useState<any | null>(null);
 
   const [gapiReady, setGapiReady] = useState(false);
   const [gisReady, setGisReady] = useState(false);
@@ -188,6 +187,7 @@ const App: React.FC = () => {
   const [duplicates, setDuplicates] = useState<Record<string, Automation[]>>({});
   const [openConnections, setOpenConnections] = useState<Record<string, boolean>>({});
   const [showDuplicates, setShowDuplicates] = useState(false);
+  const [openDuplicates, setOpenDuplicates] = useState<Record<string, boolean>>({});
   
   const CLIENT_ID = "845183132675-5rgsvbh42vbgk266osp901jnas840hfo.apps.googleusercontent.com";
   const SPREADSHEET_ID = "1C1GOZ_v91sb3E8bIGnNHF-f29a_nvk2HDdzfFtFcJpM";
@@ -400,6 +400,10 @@ const App: React.FC = () => {
   const handleToggleConnection = (connectionName: string) => {
     setOpenConnections(prev => ({ ...prev, [connectionName]: !prev[connectionName] }));
   };
+  
+  const handleToggleDuplicateGroup = (key: string) => {
+    setOpenDuplicates(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   const handleToggleAll = (expand: boolean) => {
     const allConnectionStates: Record<string, boolean> = {};
@@ -443,7 +447,7 @@ const App: React.FC = () => {
               <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-teal-400 drop-shadow-[0_2px_4px_rgba(0,255,255,0.2)]">
                   Painel de Automações Unnichat
               </h1>
-              <p className="text-gray-400 mt-2 text-lg">v5.5 - Adicionado logout e exibição de usuário.</p>
+              <p className="text-gray-400 mt-2 text-lg">v5.6 - Análise de duplicados aprimorada.</p>
           </div>
           {userEmail && (
               <div className="flex items-center gap-3 bg-slate-800/50 p-2 pr-3 rounded-lg border border-slate-700/50 shadow-md">
@@ -499,14 +503,33 @@ const App: React.FC = () => {
                     </button>
                     {showDuplicates && (
                         <div className="p-4 space-y-4 border-t border-amber-500/50">
-                            {Object.values(duplicates).map((duplicateGroup: Automation[]) => (
-                                <div key={`${duplicateGroup[0].conexao}-${duplicateGroup[0].nome}`}>
-                                    <h3 className="text-md font-semibold text-white mb-2">
-                                        "{duplicateGroup[0].nome}" na conexão "{duplicateGroup[0].conexao}" ({duplicateGroup.length}x)
-                                    </h3>
-                                    <AutomationTable automations={duplicateGroup} />
-                                </div>
-                            ))}
+                           {Object.entries(duplicates).map(([key, duplicateGroup]: [string, Automation[]]) => {
+                                const isOpen = openDuplicates[key] || false;
+                                return (
+                                    <div key={key} className="bg-slate-900/50 rounded-lg overflow-hidden">
+                                        <button
+                                            className="w-full flex justify-between items-center p-3 text-left hover:bg-slate-800/60 transition-colors"
+                                            onClick={() => handleToggleDuplicateGroup(key)}
+                                            aria-expanded={isOpen}
+                                        >
+                                            <h3 className="text-md font-semibold text-white">
+                                                "{duplicateGroup[0].nome}" na conexão "{duplicateGroup[0].conexao}"
+                                            </h3>
+                                            <div className="flex items-center gap-4">
+                                               <span className="px-2.5 py-0.5 text-xs font-semibold text-amber-800 bg-amber-300 rounded-full">
+                                                    {duplicateGroup.length} ocorrências
+                                               </span>
+                                               <ChevronDownIcon isOpen={isOpen} />
+                                            </div>
+                                        </button>
+                                        {isOpen && (
+                                            <div className="p-3 border-t border-amber-500/30">
+                                                <AutomationTable automations={duplicateGroup} />
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
                 </div>
