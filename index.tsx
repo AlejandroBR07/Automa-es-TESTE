@@ -67,7 +67,7 @@ const ChevronDownIcon = ({ isOpen }: { isOpen: boolean }) => (
 );
 
 const ExclamationIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
         <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
     </svg>
 );
@@ -447,7 +447,7 @@ const App: React.FC = () => {
               <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-teal-400 drop-shadow-[0_2px_4px_rgba(0,255,255,0.2)]">
                   Painel de Automações Unnichat
               </h1>
-              <p className="text-gray-400 mt-2 text-lg">v5.6 - Análise de duplicados aprimorada.</p>
+              <p className="text-gray-400 mt-2 text-lg">v5.7 - Interface da seção de duplicados aprimorada.</p>
           </div>
           {userEmail && (
               <div className="flex items-center gap-3 bg-slate-800/50 p-2 pr-3 rounded-lg border border-slate-700/50 shadow-md">
@@ -485,30 +485,37 @@ const App: React.FC = () => {
         ) : automations.length > 0 && !error ? (
           <div className="mt-8 space-y-8">
             {Object.keys(duplicates).length > 0 && (
-                <div className="bg-amber-900/30 border border-amber-500/50 rounded-lg">
+                <div className="bg-gradient-to-br from-orange-900/40 via-red-900/30 to-slate-900/50 border border-red-500/50 rounded-lg shadow-2xl shadow-black/30">
                     <button
-                        className="w-full flex justify-between items-center p-4 text-left"
+                        className="w-full flex justify-between items-center p-6 text-left"
                         onClick={() => setShowDuplicates(prev => !prev)}
                     >
-                        <div className="flex items-center gap-3">
-                            <ExclamationIcon />
-                            <h2 className="text-lg font-bold text-amber-300">Análise de Duplicados</h2>
+                        <div className="flex items-start gap-4">
+                            <div className="text-orange-400 mt-1">
+                                <ExclamationIcon />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">
+                                    Análise de Duplicados
+                                </h2>
+                                <p className="text-sm text-red-200/80 mt-1">Foram encontrados grupos de automações com o mesmo nome na mesma conexão.</p>
+                            </div>
                         </div>
                         <div className="flex items-center gap-4">
-                            <span className="px-3 py-1 text-xs font-semibold text-amber-900 bg-amber-400 rounded-full">
-                                {Object.keys(duplicates).length} grupo(s) encontrado(s)
+                            <span className="px-3 py-1 text-xs font-semibold text-red-900 bg-red-400 rounded-full">
+                                {Object.keys(duplicates).length} grupo(s) em alerta
                             </span>
                             <ChevronDownIcon isOpen={showDuplicates} />
                         </div>
                     </button>
                     {showDuplicates && (
-                        <div className="p-4 space-y-4 border-t border-amber-500/50">
+                        <div className="p-4 pt-0 space-y-4">
                            {Object.entries(duplicates).map(([key, duplicateGroup]: [string, Automation[]]) => {
                                 const isOpen = openDuplicates[key] || false;
                                 return (
-                                    <div key={key} className="bg-slate-900/50 rounded-lg overflow-hidden">
+                                    <div key={key} className="bg-red-950/40 border border-red-500/20 rounded-lg overflow-hidden">
                                         <button
-                                            className="w-full flex justify-between items-center p-3 text-left hover:bg-slate-800/60 transition-colors"
+                                            className="w-full flex justify-between items-center p-3 text-left hover:bg-red-900/40 transition-colors"
                                             onClick={() => handleToggleDuplicateGroup(key)}
                                             aria-expanded={isOpen}
                                         >
@@ -516,14 +523,14 @@ const App: React.FC = () => {
                                                 "{duplicateGroup[0].nome}" na conexão "{duplicateGroup[0].conexao}"
                                             </h3>
                                             <div className="flex items-center gap-4">
-                                               <span className="px-2.5 py-0.5 text-xs font-semibold text-amber-800 bg-amber-300 rounded-full">
+                                               <span className="px-2.5 py-0.5 text-xs font-semibold text-red-900 bg-red-400 rounded-full">
                                                     {duplicateGroup.length} ocorrências
                                                </span>
                                                <ChevronDownIcon isOpen={isOpen} />
                                             </div>
                                         </button>
                                         {isOpen && (
-                                            <div className="p-3 border-t border-amber-500/30">
+                                            <div className="p-3 border-t border-red-500/30">
                                                 <AutomationTable automations={duplicateGroup} />
                                             </div>
                                         )}
