@@ -246,7 +246,21 @@ const App: React.FC = () => {
       }
     } catch (err: any) {
       console.error("Erro ao buscar dados da planilha:", err);
-      setError(`Falha ao carregar dados: ${err.result?.error?.message || err.message}. Verifique se o ID da planilha está correto e se você tem permissão de acesso.`);
+      const errorCode = err.result?.error?.code;
+      const errorMessage = err.result?.error?.message || err.message;
+
+      if (errorCode === 401) {
+        // Token inválido ou expirado. Deslogar.
+        localStorage.removeItem('googleAuthToken');
+        setIsSignedIn(false);
+        setError("Sua sessão expirou ou foi invalidada. Por favor, conecte-se novamente.");
+      } else if (errorCode === 403) {
+        // Permissão negada para acessar a planilha.
+        setError(`Acesso negado à planilha. A conta conectada pode não ter permissão para visualizar o documento. Verifique as permissões de compartilhamento da planilha.`);
+      } else {
+        // Outros erros
+        setError(`Falha ao carregar dados: ${errorMessage}. Verifique sua conexão e se o ID da planilha está correto.`);
+      }
     } finally {
       setLoading(false);
     }
@@ -269,6 +283,8 @@ const App: React.FC = () => {
             callback: (tokenResponse: any) => {
                 if (tokenResponse && tokenResponse.access_token) {
                     (window as any).gapi.client.setToken(tokenResponse);
+                    const expiresAt = Date.now() + ((tokenResponse.expires_in || 3600) * 1000);
+                    localStorage.setItem('googleAuthToken', JSON.stringify({ ...tokenResponse, expires_at: expiresAt }));
                     setIsSignedIn(true);
                 } else {
                     setError("Falha na autenticação. O token de acesso não foi recebido.");
@@ -300,10 +316,26 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (isSignedIn && gapiReady) {
+    // Tenta usar o token salvo quando as APIs estiverem prontas
+    if (gapiReady && gisReady && !isSignedIn) {
+        const storedTokenString = localStorage.getItem('googleAuthToken');
+        if (storedTokenString) {
+            const token = JSON.parse(storedTokenString);
+            if (token && token.expires_at && Date.now() < token.expires_at) {
+                (window as any).gapi.client.setToken(token);
+                setIsSignedIn(true);
+            } else {
+                localStorage.removeItem('googleAuthToken');
+            }
+        }
+    }
+  }, [gapiReady, gisReady, isSignedIn]);
+  
+  useEffect(() => {
+    if (isSignedIn) {
       loadData();
     }
-  }, [isSignedIn, gapiReady, loadData]);
+  }, [isSignedIn, loadData]);
 
   const handleAuthClick = () => {
     if (CLIENT_ID.startsWith("COLE_SEU_CLIENT_ID_AQUI")) {
@@ -354,6 +386,12 @@ const App: React.FC = () => {
             <div className="text-center bg-slate-800/50 backdrop-blur-sm border border-teal-500/20 rounded-lg p-12 shadow-2xl shadow-black/50">
                 <h1 className="text-3xl font-bold text-white mb-2">Painel de Automações</h1>
                 <p className="text-gray-400 mb-8">Conecte-se com sua conta Google para carregar os dados.</p>
+                {error && (
+                    <div className="mb-4 bg-red-900/50 border border-red-500 text-red-300 px-4 py-3 rounded-md text-left" role="alert">
+                      <p className="font-bold">Ocorreu um erro</p>
+                      <p className="text-sm">{error}</p>
+                    </div>
+                )}
                 <button
                     onClick={handleAuthClick}
                     disabled={!gisReady}
@@ -375,7 +413,7 @@ const App: React.FC = () => {
           <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-teal-400 drop-shadow-[0_2px_4px_rgba(0,255,255,0.2)]">
             Painel de Automações Unnichat
           </h1>
-          <p className="text-gray-400 mt-2 text-lg">v5.2 - Removida análise com IA e coluna 'Função' expandida.</p>
+          <p className="text-gray-400 mt-2 text-lg">v5.4 - Melhoria no tratamento de erros de permissão.</p>
         </header>
 
         {error && (
