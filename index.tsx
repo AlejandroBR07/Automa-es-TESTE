@@ -202,7 +202,8 @@ const App: React.FC = () => {
   const findDuplicates = (automations: Automation[]): Record<string, Automation[]> => {
     const nameMap: Record<string, Automation[]> = {};
     automations.forEach(auto => {
-      const key = `${auto.conexao.toLowerCase().trim()}|||${auto.nome.toLowerCase().trim()}`;
+      // Agora a chave considera CONEXÃO + PASTA + NOME
+      const key = `${auto.conexao.toLowerCase().trim()}|||${auto.pasta.toLowerCase().trim()}|||${auto.nome.toLowerCase().trim()}`;
       if (!nameMap[key]) {
         nameMap[key] = [];
       }
@@ -447,7 +448,7 @@ const App: React.FC = () => {
               <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-teal-400 drop-shadow-[0_2px_4px_rgba(0,255,255,0.2)]">
                   Painel de Automações Unnichat
               </h1>
-              <p className="text-gray-400 mt-2 text-lg">v5.7 - Interface da seção de duplicados aprimorada.</p>
+              <p className="text-gray-400 mt-2 text-lg">v5.8 - Duplicados validados por Conexão e Pasta.</p>
           </div>
           {userEmail && (
               <div className="flex items-center gap-3 bg-slate-800/50 p-2 pr-3 rounded-lg border border-slate-700/50 shadow-md">
@@ -498,7 +499,7 @@ const App: React.FC = () => {
                                 <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">
                                     Análise de Duplicados
                                 </h2>
-                                <p className="text-sm text-red-200/80 mt-1">Foram encontrados grupos de automações com o mesmo nome na mesma conexão.</p>
+                                <p className="text-sm text-red-200/80 mt-1">Foram encontrados grupos de automações com o mesmo nome na mesma conexão e pasta.</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-4">
@@ -520,7 +521,7 @@ const App: React.FC = () => {
                                             aria-expanded={isOpen}
                                         >
                                             <h3 className="text-md font-semibold text-white">
-                                                "{duplicateGroup[0].nome}" na conexão "{duplicateGroup[0].conexao}"
+                                                "{duplicateGroup[0].nome}" na pasta "{duplicateGroup[0].pasta}" (Conexão: {duplicateGroup[0].conexao})
                                             </h3>
                                             <div className="flex items-center gap-4">
                                                <span className="px-2.5 py-0.5 text-xs font-semibold text-red-900 bg-red-400 rounded-full">
